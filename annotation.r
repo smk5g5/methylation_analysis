@@ -1,0 +1,76 @@
+# options(echo=TRUE) # if you want see commands in output file
+# args <- commandArgs(trailingOnly = TRUE)
+# if(length(args) < 2) {
+  # args <- c("--help")
+# }
+# library(methylKit)
+# library("graphics")
+# saved_obj <- as.character(unlist(args[1]))
+# obj_name <- as.character(unlist(args[2]))
+# load(saved_obj)
+# print (ls())
+# myDiff <- calculateDiffMeth(newMeth,num.cores = 4)
+# myDiff25p.hyper <- get.methylDiff(myDiff, difference = 25,qvalue = 0.01, type = "hyper")
+# myDiff25p.hypo <- get.methylDiff(myDiff, difference = 25,qvalue = 0.01, type = "hypo")
+# myDiff25p <- get.methylDiff(myDiff, difference = 25,qvalue = 0.01)
+
+# gene.obj=read.transcript.features("gmax_bed.bed")
+# annotate.WithGenicParts(myDiff25p,gene.obj)
+# diffAnn=annotate.WithGenicParts(myDiff25p,gene.obj)
+# head(getAssociationWithTSS(diffAnn))
+# getTargetAnnotationStats(diffAnn,percentage=TRUE,precedence=TRUE)
+# getFeatsWithTargetsStats(diffAnn,percentage=TRUE)
+
+# results_graph <- unlist(paste("annotation_",args[2],".pdf",sep=''))
+
+# pdf(file=results_graph)  
+# plotTargetAnnotation(diffAnn,precedence=TRUE,main="differential methylation annotation")
+# dev.off()
+
+options(echo=TRUE) # if you want see commands in output file
+args <- commandArgs(trailingOnly = TRUE)
+if(length(args) < 2) {
+  args <- c("--help")
+}
+sample_1 <- as.character(unlist(args[1]))
+sample_2 <- as.character(unlist(args[2]))
+sample_name_1 <- as.character(unlist(args[3]))
+sample_name_2 <- as.character(unlist(args[4]))
+con_text <- as.character(unlist(args[5]))
+results_graph <- unlist(paste(args[5],".pdf",sep=''))
+# results_data <- unlist(paste(args[5],".RData",sep=''))
+results_hyper <- unlist(paste('hyper_dmr_',args[5],".txt",sep=''))
+results_hypo <- unlist(paste('hypo_dmr_',args[5],".txt",sep=''))
+all_diff <- unlist(paste('all_dmr_',args[5],".txt",sep=''))
+library(methylKit)
+library("graphics")
+file.list <- list(sample_1, sample_2)
+print(file.list) 
+clist <- read(file.list, sample.id = list(sample_name_1, sample_name_2), assembly = "gmax", treatment = c(0,1), context = con_text)
+filtered.clist <- filterByCoverage(clist, lo.count = 10,lo.perc = NULL, hi.count = NULL, hi.perc = 99.9)
+newMeth <- unite(filtered.clist)
+# save(newMeth, file = results_data)
+gene.obj=read.transcript.features("gmax_bed.bed")
+pdf(file=results_graph)  
+getCorrelation(newMeth, plot = T)
+clusterSamples(newMeth, dist = "correlation", method = "ward",plot = TRUE)
+# PCASamples(newMeth, screeplot = TRUE)
+# PCASamples(newMeth)
+myDiff <- calculateDiffMeth(newMeth,num.cores = 4)
+myDiff25p.hyper <- get.methylDiff(myDiff, difference = 25,qvalue = 0.01, type = "hyper")
+myDiff25p.hypo <- get.methylDiff(myDiff, difference = 25,qvalue = 0.01, type = "hypo")
+myDiff25p <- get.methylDiff(myDiff, difference = 25,qvalue = 0.01)
+diffMethPerChr(myDiff, plot = TRUE, qvalue.cutoff = 0.01, newMeth.cutoff = 25) ##per chromosome plot
+# annotate.WithGenicParts(myDiff25p,gene.obj)
+diffAnn=annotate.WithGenicParts(myDiff25p,gene.obj)
+plotTargetAnnotation(diffAnn,precedence=TRUE,main="differential methylation annotation")
+dev.off()
+
+write.table(myDiff25p.hyper, file=results_hyper, sep="\t",row.names = FALSE)
+write.table(myDiff25p.hypo, file=results_hypo, sep="\t",row.names = FALSE)
+write.table(myDiff25p, file=all_diff, sep="\t",row.names = FALSE)
+
+head(getAssociationWithTSS(diffAnn))
+getTargetAnnotationStats(diffAnn,percentage=TRUE,precedence=TRUE)
+getFeatsWithTargetsStats(diffAnn,percentage=TRUE)
+
